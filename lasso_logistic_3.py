@@ -2,7 +2,6 @@
 """
 Created on Fri Mar 17 16:06:55 2023
 
-@author: 11149
 """
 import pyodbc
 import pandas as pd
