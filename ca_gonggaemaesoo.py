@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Apr 24 12:57:15 2023
-
-@author: 11149
 """
 
 #pip install requests beautifulsoup4
