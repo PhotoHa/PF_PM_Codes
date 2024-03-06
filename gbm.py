@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Oct  5 11:13:30 2022
-
-@author: 11149
 """
 
 %matplotlib inline
@@ -31,28 +29,28 @@ def annualize_vol(r, periods_per_year):
     return r.std()*(periods_per_year**0.5)
 
 ########################### 150 #################################
-df_rt = pd.read_csv("T:\\index\\95_곽용하\\시나리오테스트\\새 양식\\150_rt.csv")
+df_rt = pd.read_csv("150_rt.csv")
 rt = df_rt.iloc[:,0]
 
 mu_150 = annualize_rets(rt, periods_per_year=252)
 sigma_150 = annualize_vol(rt, periods_per_year=252)
 
 ########################### 2배 200 #################################
-df_rt = pd.read_csv("T:\\index\\95_곽용하\\시나리오테스트\\새 양식\\2_200_rt.csv")
+df_rt = pd.read_csv("2_200_rt.csv")
 rt = df_rt.iloc[:,0]
 
 mu_150 = annualize_rets(rt, periods_per_year=252)
 sigma_150 = annualize_vol(rt, periods_per_year=252)
 
 ########################### 인버스 200 #################################
-df_rt = pd.read_csv("T:\\index\\95_곽용하\\시나리오테스트\\새 양식\\in_200_rt.csv")
+df_rt = pd.read_csv("in_200_rt.csv")
 rt = df_rt.iloc[:,0]
 
 mu_150 = annualize_rets(rt, periods_per_year=252)
 sigma_150 = annualize_vol(rt, periods_per_year=252)
 
 ########################### 중국 #################################
-df_rt = pd.read_csv("T:\\index\\95_곽용하\\시나리오테스트\\새 양식\\china_rt.csv")
+df_rt = pd.read_csv("china_rt.csv")
 rt = df_rt.iloc[:,0]
 
 mu_150 = annualize_rets(rt, periods_per_year=252)
@@ -62,16 +60,6 @@ sigma_150 = annualize_vol(rt, periods_per_year=252)
 
 
 def gbm0(n_years = 10, n_scenarios=1000, mu=0.07, sigma=0.15, steps_per_year=12, s_0=100.0):
-    """
-    Evolution of Geometric Brownian Motion trajectories, such as for Stock Prices
-    :param n_years:  The number of years to generate data for
-    :param n_paths: The number of scenarios/trajectories
-    :param mu: Annualized Drift, e.g. Market Return
-    :param sigma: Annualized Volatility
-    :param steps_per_year: granularity of the simulation
-    :param s_0: initial value
-    :return: a numpy array of n_paths columns and n_years*steps_per_year rows
-    """
     # Derive per-step Model Parameters from User Specifications
     dt = 1/steps_per_year
     n_steps = int(n_years*steps_per_year)
