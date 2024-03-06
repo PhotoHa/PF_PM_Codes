@@ -112,14 +112,14 @@ facotr_list = tuple(slctd)
 f1 = facotr_list[0]; f2 = facotr_list[1]; f3 = facotr_list[2]
 
 sql_200 = f'''  select TRD_DT AS BASE_D, STK_CD as Code
-            	from wisefn..ts_stk_issue
+            	from stk_issue
             	where 1=1
             		and KS200_TYP = 1 -- 이 부분만 바꾸면 됨. KQ150
-            		and TRD_DT in (select ymd from wisefn..tz_date where MN_END_YN = 1)
+            		and TRD_DT in (select ymd from date where MN_END_YN = 1)
             		and TRD_DT in {time_pd_80}  '''
 
 sql_fct = f'''  select convert(varchar(08),ScoreDate,112) as BASE_D, FactorCode, right(Code,6) as Code, Ratio
-			from quant..QA_FactorDat_
+			from Factor
             where 1=1
                 and FactorCode in {facotr_list}
                 and convert(varchar(08),ScoreDate,112) in {time_pd_80}'''
@@ -132,12 +132,12 @@ fct5_data = pd.read_sql(sql_fct, conn_quant)
 
 # 코스피200 종목의 수정주가 데이터 가져오
 sql_prc = ''' select a.TRD_DT AS BASE_D, a.STK_CD, b.VAL
-                from wisefn..ts_stk_issue a
+                from wisefn.._issue a
                 	left join wisefn..ts_stk_data b
                 		on a.TRD_DT = b.TRD_DT and a.STK_CD = b.STK_CD
                 where 1=1
                     and a.KS200_TYP = 1 -- 이 부분만 바꾸면 됨. KQ150
-                    and a.TRD_DT in (select ymd from wisefn..tz_date where MN_END_YN = 1)
+                    and a.TRD_DT in (select ymd from date where MN_END_YN = 1)
                     and a.TRD_DT >= '20000101'
                 	and b.ITEM_CD = '100300' '''
 
