@@ -14,12 +14,12 @@ import itertools
 import math
 import time
 import os
-os.chdir('T:\\index\\95_곽용하\\운용\\코드')
+os.chdir('')
 import functions_0 as mf
 
-conn_quant = pyodbc.connect('driver={SQL Server};server=46.2.90.172;database=quant;uid=index;pwd=samsung@00')
-conn_wisefn = pyodbc.connect('driver={SQL Server};server=46.2.90.172;database=wisefn;uid=index;pwd=samsung@00')
-conn_pcor = pyodbc.connect('driver={Oracle in OraClient12Home1};dbq=PCOR;uid=EF0SEL;pwd=EF0SEL#076')
+conn_quant = pyodbc.connect('driver={SQL Server};server=')
+conn_wisefn = pyodbc.connect('driver={SQL Server};server=')
+conn_pcor = pyodbc.connect('driver={Oracle in OraClient12Home1};')
 
 
 '''  
@@ -43,8 +43,8 @@ long_num = 30
 ########## a) 특정 기간 내 5개 팩터 선별 ##########
 
 sql = """ select a.BASE_D, a.FactorCode, a.TILE_RET - b.TILE_RET as LS
-            from quant..SMU_FACTOR_TILE_RET a
-            	left join quant..SMU_FACTOR_TILE_RET b
+            from RET a
+            	left join RET b
             		on a.BASE_D = b.BASE_D and a.FactorCode = b.FactorCode
             where 1=1
             	and a.BASE_D >= '20000101'
@@ -56,9 +56,9 @@ sql = """ select a.BASE_D, a.FactorCode, a.TILE_RET - b.TILE_RET as LS
 df_raw = pd.read_sql(sql, conn_wisefn)
 
 sql_idx = f'''  SELECT TRD_DT AS BASE_D, CLOSE_PRC, LEAD(CLOSE_PRC, 1) OVER (ORDER BY TRD_DT) AS NXT_D
-                FROM WISEFN..TS_IDX_DAILY
+                FROM DAILY
                 WHERE 1=1
-                	AND TRD_DT IN (SELECT YMD FROM WISEFN..TZ_DATE WHERE MN_END_YN = 1)
+                	AND TRD_DT IN (SELECT YMD FROM DATE WHERE MN_END_YN = 1)
                 	AND TRD_DT >= '20000101'
                 	AND SEC_CD = '{idx_cd}'
                 ORDER BY TRD_DT  '''
