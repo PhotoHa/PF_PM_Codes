@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Nov 22 10:38:03 2022
-
-@author: 11149
 """
 
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from statsmodels.tsa.api import VAR
-
 from statsmodels.tsa.stattools import adfuller
 
 
-df = pd.read_csv("T:\\index\\95_곽용하\\연구\\국면_기준 탐구\\gt_spd_vksp.csv",index_col=0)
+df = pd.read_csv("gt_spd_vksp.csv",index_col=0)
 mdata = df
 data = np.log(mdata).diff().dropna()
 
