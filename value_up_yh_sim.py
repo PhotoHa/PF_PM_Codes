@@ -2,7 +2,6 @@
 """
 Created on Wed Feb 28 08:43:16 2024
 
-@author: 11149
 """
 
 import pandas as pd
@@ -10,18 +9,16 @@ import numpy as np
 import pyodbc
 import openpyxl as op
 import os
-os.chdir('T:\\index\\00_index\\00_신규펀드, 상품개발\\20240206_밸류업\ ')
+os.chdir('')
 import schedule
 import time
 
 pd.set_option("display.max_columns", 50) #최대 50개의 컬럼까지 줄바꿈으로 보여줌
 
 # 0. 데이터베이스 연결
-conn_pcor = pyodbc.connect('driver={Oracle in OraClient12Home1};dbq=PCOR;uid=EF0SEL;pwd=EF0SEL#076')
-conn_quant = pyodbc.connect('driver={SQL Server};server=46.2.90.172;database=quant;uid=index;pwd=samsung@00')
-conn_wisefn = pyodbc.connect('driver={SQL Server};server=46.2.90.172;database=wisefn;uid=index;pwd=samsung@00')
-
-
+conn_pcor = pyodbc.connect('driver={Oracle in OraClient12Home1};')
+conn_quant = pyodbc.connect('driver={SQL Server};')
+conn_wisefn = pyodbc.connect('driver={SQL Server};')
 
 
 
@@ -40,7 +37,7 @@ pbr_set = 1
 
 
 sql_q_date =  f'''  select top 2 ymd
-                    from wisefn..TZ_DATE
+                    from DATE
                     where 1=1
                     and ymd <= {rebalancing_dt}
                     and MNO_OF_YR = 6
@@ -54,7 +51,7 @@ q_date_list = pd.read_sql(sql_q_date, conn_wisefn)
 
 # FY-0
 sql_tgt_date_1 =  f'''  select top 1 ymd
-                        from wisefn..TZ_DATE
+                        from DATE
                         where 1=1
                         and ymd < {rebalancing_dt}
                         and MNO_OF_YR = 12
@@ -66,7 +63,7 @@ tgt_date = tgt_date.iloc[0,0] #'20231228'
 
 # FY-1
 sql_tgt_date_2 =  f'''  select top 1 ymd
-                        from wisefn..TZ_DATE
+                        from DATE
                         where 1=1
                         and ymd < {tgt_date}
                         and MNO_OF_YR = 12
@@ -78,7 +75,7 @@ tgt_date_1 = tgt_date_1.iloc[0,0] #'20221229'
 
 # FY-2 : 쓸 일 없음
 sql_tgt_date_3 =  f'''  select top 1 ymd
-                        from wisefn..TZ_DATE
+                        from DATE
                         where 1=1
                         and ymd < {tgt_date_1}
                         and MNO_OF_YR = 12
@@ -100,7 +97,7 @@ sql_universe = f'''
                     SELECT STK_CD, TRD_DT, 
                     [5일평균거래대금] = AVG(TRD_AMT) OVER (PARTITION BY STK_CD ORDER BY STK_CD, TRD_DT ROWS BETWEEN 4 PRECEDING AND CURRENT ROW),
                     [20일평균거래대금] = AVG(TRD_AMT) OVER (PARTITION BY STK_CD ORDER BY STK_CD, TRD_DT ROWS BETWEEN 19 PRECEDING AND CURRENT ROW)
-                    FROM WISEFN..TS_STK_DAILY
+                    FROM DAILY
                     where trd_dt <= '{tgt_date}'
                     and trd_dt >= Dateadd(day, -19, '{tgt_date}')
                     )
@@ -110,20 +107,20 @@ sql_universe = f'''
                B.CMP_CD 기업코드, D.CLOSE_PRC 종가, D.MKT_VAL 시가총액,
                D.TRD_AMT 거래대금, E.SECTOR_NM 섹터이름, E2.SECTOR_NM 산업이름, F.[5일평균거래대금],F.[20일평균거래대금] 
         
-               FROM WISEFN..TS_STK_ISSUE A
-               LEFT OUTER JOIN WISEFN..TS_STOCK B
+               FROM ISSUE A
+               LEFT OUTER JOIN STOCK B
                    ON A.STK_CD = B.STK_CD
         
-               LEFT OUTER JOIN WISEFN..TC_COMPANY C
+               LEFT OUTER JOIN COMPANY C
                    ON B.CMP_CD = C.CMP_CD
         
-               LEFT OUTER JOIN WISEFN..TS_STK_DAILY D
+               LEFT OUTER JOIN DAILY D
                    ON A.STK_CD = D.STK_CD
                    AND A.TRD_DT = D.TRD_DT
         
                LEFT OUTER JOIN (
                    SELECT SEC_CD SECTOR_CD, SEC_N_KOR SECTOR_NM
-                   FROM WISEFN..TC_SECTOR
+                   FROM SECTOR
                    WHERE SEC_TYP = \'G\'
                        AND LEN(SEC_CD) = 3
                    ) E
@@ -131,7 +128,7 @@ sql_universe = f'''
         
                LEFT OUTER JOIN (
                    SELECT SEC_CD SECTOR_CD, SEC_N_KOR SECTOR_NM
-                   FROM WISEFN..TC_SECTOR
+                   FROM SECTOR
                    WHERE SEC_TYP = \'G\'
                        AND LEN(SEC_CD) = 5
                    ) E2
@@ -180,7 +177,7 @@ universe_1.insert(1, 'Rebal_dt', rebalancing_dt)
 
 
 # 3. 재무제표 데이터 및 마켓 데이터 (2018년 이후)
-path = "T:\\index\\00_index\\00_신규펀드, 상품개발\\20240206_밸류업\\korea_prime_index\\"
+path = ""
 
 beta_data = pd.read_excel(path + "kor_ver_data.xlsx", skiprows = list(range(14)), header = None, sheet_name = 'Beta')
 beta_data.columns = ['STK_CD','종목이름','결산','20181228','20191230','20201230','20211230','20221229','20231228']
@@ -233,7 +230,6 @@ roe_in.columns = ['ROE_FY-0','ROE_FY-1','종목코드']
 
 
 es_0 = pd.merge(beta_in_2, roe_in, 'inner', '종목코드')
-
 es_0['ES-0'] = es_0['ROE_FY-0'] - es_0['cost_0']
 es_0['ES-1'] = es_0['ROE_FY-1'] - es_0['cost_1']
 
@@ -244,7 +240,7 @@ es_0['ES-1'] = es_0['ROE_FY-1'] - es_0['cost_1']
 sql_date = q_date_list.iloc[0,0]
 sql_date = sql_date[0:4] + '-' + sql_date[4:6] + '-' + sql_date[6:8]
 sql_pbr =  f''' SELECT CONVERT(VARCHAR(8), ScoreDate, 112) AS '기준일', Code AS '종목코드', Ratio AS PBR_0
-                FROM QUANT..QA_FactorDat_
+                FROM Dat_
                 WHERE 1=1
                 AND FactorCode = 'BTM_QW'
                 AND ScoreDate =  '{sql_date}' '''
@@ -256,7 +252,7 @@ pbr_data['종목코드'] = [x[1:] for x in pbr_data['종목코드']]
 sql_date_1 = q_date_list.iloc[1,0]
 sql_date_1 = sql_date_1[0:4] + '-' + sql_date_1[4:6] + '-' + sql_date_1[6:8]
 sql_pbr_1 =  f''' SELECT CONVERT(VARCHAR(8), ScoreDate, 112) AS '기준일', Code AS '종목코드', Ratio AS PBR_1
-                FROM QUANT..QA_FactorDat_
+                FROM Dat_
                 WHERE 1=1
                 AND FactorCode = 'BTM_QW'
                 AND ScoreDate =  '{sql_date_1}' '''
@@ -304,14 +300,10 @@ df_3 = pd.concat([df_roe_es, df_pbr])
 df_3 = df_3.sort_values(['시가총액','ROE_FY-0','PBR_0'],ascending=False)
 
 # 9. excel 저장
-df0.to_excel(path+ f'\\universe\\{rebalancing_dt}_basket_{len(df_3)}_roe_8_pbr_1_raw.xlsx', encoding='utf-8-sig')
-df_3.to_excel(path+ f'\\basket_150\\{rebalancing_dt}_basket_{len(df_3)}_roe_8_pbr_1_pf.xlsx', encoding='utf-8-sig')
+df0.to_excel(path+ f'\\universe\\{rebalancing_dt}_basket_{len(df_3)}_.xlsx', encoding='utf-8-sig')
+df_3.to_excel(path+ f'\\basket_150\\{rebalancing_dt}_basket_{len(df_3)}_pf.xlsx', encoding='utf-8-sig')
 
-all_data = pd.merge(universe_11, imsi, 'left', '종목코드').sort_values(['시가총액','ROE_FY-0','PBR_0'],ascending=False)
-all_data.insert(1, 'Rebal_dt', rebalancing_dt)
-all_data.loc[all_data['PBR_0'] < -100, 'PBR_0'] = 'n/a'
-all_data.loc[all_data['PBR_1'] < -100, 'PBR_1'] = 'n/a'
-all_data.to_excel(path+ f'\\raw\\{rebalancing_dt}_all_{len(df_3)}_roe_8_pbr_1.xlsx', encoding='utf-8-sig')
+
 
 
 print(f'리밸런싱 일자: {rebalancing_dt}')
@@ -320,7 +312,6 @@ print(f'ROE FY-1 일자: {tgt_date_1}')
 print(f'PBR FY-0 일자: {sql_date}')
 print(f'PBR FY-1 일자: {sql_date_1}')
 
-#df0.to_excel(path+ f'\\raw\\{rebalancing_dt}_basket_{len(df_3)}_roe_8_pbr_1_raw.xlsx', encoding='utf-8-sig')
 
 
 
