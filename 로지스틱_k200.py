@@ -18,11 +18,11 @@ from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 
 ### data input ###
-k200 = pd.read_csv("T:\\index\\95_곽용하\\연구\\logit\\data_\\k200.csv", index_col=0)
-prc = pd.read_csv("T:\\index\\95_곽용하\\연구\\logit\\data_\\prc.csv", index_col=0)
-vol = pd.read_csv("T:\\index\\95_곽용하\\연구\\logit\\data_\\vol.csv", index_col=0)
-pns = pd.read_csv("T:\\index\\95_곽용하\\연구\\logit\\data_\\pns.csv", index_col=0)
-vksp = pd.read_csv("T:\\index\\95_곽용하\\연구\\logit\\data_\\vksp.csv", index_col=0)
+k200 = pd.read_csv("k200.csv", index_col=0)
+prc = pd.read_csv("prc.csv", index_col=0)
+vol = pd.read_csv("vol.csv", index_col=0)
+pns = pd.read_csv("pns.csv", index_col=0)
+vksp = pd.read_csv("csv", index_col=0)
 
  
 
