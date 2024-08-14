@@ -1,0 +1,83 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Aug 14 16:42:56 2024
+
+@author: 11149
+"""
+
+import pandas as pd
+import numpy as np
+import pyodbc
+import datetime
+conn_pcor = pyodbc.connect('driver={Oracle in OraClient12Home1};dbq=PCOR;uid=EF0SEL;pwd=EF0SEL#076')
+
+sql_ksc =  '''  select REG_D, REG_T, IDX, TR_CQ, TR_P
+                from ksc.KOSPI200IDX 
+                where reg_d > '2024-01-02' AND BUCL_CD = 29  '''
+data_prc = pd.read_sql(sql_ksc, conn_pcor)
+
+data_prc['YMD'] = data_prc['REG_D'].dt.strftime('%Y-%m-%d')
+data_prc['MS'] = data_prc['REG_D'].dt.strftime('%H:%M')
+data_prc = data_prc.set_index('REG_D')
+
+
+# 시가, 종가, 일 단위 시가
+open_prc = data_prc[['IDX','YMD','MS']].resample('T').first().dropna()
+
+close_prc= data_prc[['IDX','YMD','MS']].resample('T').last().dropna()
+close_prc['YMD'] = pd.to_datetime(close_prc['YMD'])
+
+d_open_prc = open_prc.resample('D').first().dropna()
+d_open_prc = pd.DataFrame(d_open_prc).reset_index()
+d_open_prc.columns = ['REG_D','D_OPEN','YMD','MS']
+d_open_prc['YMD'] = pd.to_datetime(d_open_prc['YMD'])
+
+# 전일 종가
+d_close_prc = close_prc.resample('D').last().dropna()
+d_close_prc['PREV_CLS'] = d_close_prc['IDX'].shift(1)
+d_close_prc = d_close_prc.reset_index()
+d_close_prc.dropna(inplace=True)
+
+df = pd.merge(close_prc, d_open_prc[['D_OPEN','YMD']], 'left', 'YMD')
+df['MOVE'] = abs(df['IDX'] / df['D_OPEN'] - 1)
+
+df1 = pd.merge(df, d_close_prc[['YMD','PREV_CLS']], 'left', 'YMD').dropna()
+df1['date_info'] = df1['YMD'].astype('str')+' '+df1['MS']
+df1['date_info'] = pd.to_datetime(df1['date_info']) #,format="%Y%m%d %H:%M"
+df1 = df1.set_index('date_info',drop=True)
+
+
+## 바운더리 설정
+# 14일 move의 평균치
+sigma_hhmm = df1.groupby('MS')['MOVE'].rolling(14).mean()
+sigma_hhmm = sigma_hhmm.reset_index()
+sigma_hhmm.columns = ['MS','REG_D','SIGMA_HHMM']
+sigma_hhmm['YMD'] = sigma_hhmm['REG_D'].dt.strftime('%Y-%m-%d')
+sigma_hhmm['YMD'] = pd.to_datetime(sigma_hhmm['YMD'])
+
+bound_hhmm = pd.merge(df1, sigma_hhmm[['SIGMA_HHMM','YMD','MS']], 'left', ['YMD','MS']).dropna()
+# 일자 정리하기
+bound_hhmm['date_info'] = bound_hhmm['YMD'].astype('str')+' '+bound_hhmm['MS']
+bound_hhmm['date_info'] = pd.to_datetime(bound_hhmm['date_info']) #,format="%Y%m%d %H:%M"
+bound_hhmm = bound_hhmm.set_index('date_info',drop=True)
+
+bound_hhmm['UPPER_B'] = np.maximum(bound_hhmm['D_OPEN'], bound_hhmm['PREV_CLS'])*(1+bound_hhmm['SIGMA_HHMM'])
+bound_hhmm['LOWER_B'] = np.minimum(bound_hhmm['D_OPEN'], bound_hhmm['PREV_CLS'])*(1-bound_hhmm['SIGMA_HHMM'])
+
+
+# vwap
+vwap = bound_hhmm.copy()
+vwap = vwap.reset_index()
+vwap = vwap.rename(columns={'date_info':'REG_D'})
+
+vwap = pd.merge(vwap, data_prc.reset_index()[['REG_D','TR_CQ']], 'left', 'REG_D').fillna(0)
+vwap['TRD_QTY'] = vwap.groupby('YMD')['TR_CQ'].diff(1).fillna(0)
+
+vwap['TRD_AMT'] = vwap['TRD_QTY']*vwap['IDX']
+vwap['Q_QTY'] = vwap.groupby('YMD')['TRD_QTY'].cumsum()
+vwap['Q_AMT'] = vwap.groupby('YMD')['TRD_AMT'].cumsum()
+vwap['VWAP'] = vwap['Q_AMT'] / vwap['Q_QTY']
+
+vwap = vwap.set_index('REG_D')
+
+vwap['2024-05-28':'2024-05-28'][['IDX','UPPER_B','LOWER_B','VWAP']].plot(figsize=(8,4))
